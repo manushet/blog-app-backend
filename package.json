@@ -1,0 +1,31 @@
+{
+  "devDependencies": {
+    "@babel/core": "^7.22.11",
+    "@babel/preset-env": "^7.22.10",
+    "@hotwired/stimulus": "^3.0.0",
+    "@popperjs/core": "^2.11.8",
+    "@symfony/stimulus-bridge": "^3.2.2",
+    "@symfony/webpack-encore": "^4.4.0",
+    "bootstrap": "^5.3.1",
+    "file-loader": "^6.2.0",
+    "jquery": "^3.7.1",
+    "sass": "^1.66.1",
+    "sass-loader": "^13.3.2",
+    "webpack-notifier": "^1.15.0"
+  },
+  "scripts": {
+    "dev-server": "encore dev-server --public http://localhost:8080 --host 0.0.0.0",
+    "dev": "encore dev",
+    "watch": "encore dev --watch",
+    "build": "encore production --progress"
+  },
+  "name": "blog-app",
+  "version": "1.0.0",
+  "main": "webpack.config.js",
+  "directories": {
+    "test": "tests"
+  },
+  "author": "",
+  "license": "ISC",
+  "description": ""
+}

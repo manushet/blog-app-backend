@@ -1,0 +1,93 @@
+version: '3'
+
+networks:
+    blog-network:
+
+services:
+    blog-phpmyadmin:
+        image: phpmyadmin
+        ports:
+            - "8080:80"
+        tty: true   
+        environment:  
+            - PMA_ARBITRARY=1
+            - PMA_HOST=blog-mysql
+            - PMA_USER=root
+            - PMA_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        networks:
+            - blog-network   
+        volumes:
+            - .:/app             
+        restart: always                
+        depends_on:
+            - blog-mysql     
+    blog-mysql:
+        build: 
+            context: ./docker/mysql      
+            dockerfile: Dockerfile  
+            args:
+                - MYSQL_DATABASE=${MYSQL_DATABASE}
+                - MYSQL_USER=${MYSQL_USER}
+                - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+                - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        tty: true
+        cap_add:
+            - SYS_NICE
+        environment:
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+            - MYSQL_ROOT_PASSWORD=${MYSQL_ROOT_PASSWORD}
+        volumes:
+            - mysql_data:/var/lib/mysql
+        ports:
+            - "3306:3306" 
+        networks:
+            - blog-network     
+        restart: unless-stopped                              
+    blog-php:
+        build:
+            context: ./
+            dockerfile: ./docker/php/Dockerfile
+        tty: true
+        volumes:
+            - .:/app
+        working_dir: /app
+        environment:
+            - PHP_IDE_CONFIG=serverName=blog.loc
+            - MYSQL_DATABASE=${MYSQL_DATABASE}
+            - MYSQL_USER=${MYSQL_USER}
+            - MYSQL_PASSWORD=${MYSQL_PASSWORD}
+            - MYSQL_ROOT_PASSWORD=12345   
+            - XDEBUG_MODES=develop,debug
+            - REMOTE_HOST=host.docker.internal
+            - REMOTE_PORT=9003
+            - IDE_KEY=docker
+        extra_hosts:
+            - host.docker.internal:host-gateway
+        networks:
+            - blog-network  
+        restart: always      
+        depends_on:
+            - blog-mysql  
+    blog-nginx:
+        build:
+            context: ./docker/nginx
+            dockerfile: Dockerfile
+        ports:
+            - 8000:80
+        volumes:
+            - .:/app  
+        networks:
+            - blog-network   
+        extra_hosts:
+            - host.docker.internal:host-gateway    
+        depends_on:
+            - blog-php
+    ###> symfony/mailer ###
+    mailer:
+        image: schickling/mailcatcher
+        ports: ["1025", "1080"]
+    ###< symfony/mailer ###
+volumes:
+    mysql_data:
