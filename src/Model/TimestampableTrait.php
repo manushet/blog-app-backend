@@ -4,8 +4,6 @@ namespace App\Model;
 
 use Symfony\Component\Serializer\Annotation\Groups;
 use Doctrine\ORM\Mapping as ORM;
-use Doctrine\ORM\Mapping\PrePersist;
-use Doctrine\ORM\Mapping\PreUpdate;
 
 trait TimestampableTrait 
 {
@@ -16,7 +14,7 @@ trait TimestampableTrait
      *
      * @var \DateTimeImmutable|null
      */    
-    private ?\DateTimeImmutable $createdAt = null;
+    private \DateTimeImmutable|null $createdAt = null;
 
     #[ORM\Column(nullable: true)]
     #[Groups(['read'])]
@@ -25,18 +23,18 @@ trait TimestampableTrait
      *
      * @var \DateTimeImmutable|null
      */
-    private ?\DateTimeImmutable $updatedAt = null;
+    private \DateTimeImmutable|null $updatedAt = null;
 
     /**
-     * @return \DateTimeImmutable
+     * @return \DateTimeImmutable|null
      */
-    public function getCreatedAt(): ?\DateTimeImmutable
+    public function getCreatedAt(): \DateTimeImmutable
     {
         return $this->createdAt;
     }
 
     /**
-     * @param \DateTimeImmutable $createdAt
+     * @param \DateTimeImmutable|null $createdAt
      */
     public function setCreatedAt(\DateTimeImmutable $createdAt): static
     {
@@ -46,28 +44,25 @@ trait TimestampableTrait
     }
 
     /**
-     * @return \DateTimeImmutable
+     * @return \DateTimeImmutable|null
      */    
-    public function getUpdatedAt(): ?\DateTimeImmutable
+    public function getUpdatedAt(): \DateTimeImmutable
     {
         return $this->updatedAt;
     }
 
     /**
-     * @param \DateTimeImmutable $updatedAt
+     * @param \DateTimeImmutable|null $updatedAt
      */
-    public function setUpdatedAt(?\DateTimeImmutable $updatedAt): static
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt): static
     {
         $this->updatedAt = $updatedAt;
 
         return $this;
     }       
 
-    /**
-     * @return void
-     */
-    #[PrePersist]
-    public function timestampablePrePersist()
+    #[ORM\PrePersist]
+    public function PrePersist(): void
     {
         if (!$this->createdAt) {
             $this->createdAt = new \DateTimeImmutable();
@@ -75,11 +70,8 @@ trait TimestampableTrait
         $this->updatedAt = clone $this->createdAt;
     }
 
-    /**
-     * @return void
-     */
-    #[PreUpdate]
-    public function timestampablePreUpdate()
+    #[ORM\PreUpdate]
+    public function PreUpdate(): void
     {
         $this->updatedAt = new \DateTimeImmutable();
     }

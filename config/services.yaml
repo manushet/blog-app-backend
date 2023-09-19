@@ -24,6 +24,17 @@ services:
         decorates: 'api_platform.openapi.factory'
         arguments: ['@.inner']
 
+    App\Serializer\AdminContextBuilder:
+        decorates: 'api_platform.serializer.context_builder'
+        arguments: [ '@App\Serializer\AdminContextBuilder.inner' ]
+        autoconfigure: false      
+
+    App\Serializer\UserAttributeNormalizer:
+        arguments: [ '@security.token_storage' ]
+        tags:
+            - { name: 'serializer.normalizer', priority: 64 }  
+
+
     Symfony\Component\Uid\Command\GenerateUuidCommand: ~
     Symfony\Component\Uid\Command\InspectUuidCommand: ~
 

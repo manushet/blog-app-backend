@@ -3,41 +3,38 @@
 
 namespace App\Model;
 
-
-use DateTime;
-
 interface TimestampableInterface
 {
     /**
-     * @param DateTime $createdAt
+     * @param \DateTimeImmutable|null $createdAt
      * @return void
      */
-    public function setCreatedAt(DateTime $createdAt);
+    public function setCreatedAt(\DateTimeImmutable $createdAt);
 
     /**
-     * @param DateTime $updatedAt
+     * @param \DateTimeImmutable|null $updatedAt
      * @return void
      */
     
-    public function setUpdatedAt(DateTime $updatedAt);
+    public function setUpdatedAt(\DateTimeImmutable $updatedAt);
 
     /**
-     * @return DateTime
+     * @return \DateTimeImmutable|null
      */
-    public function getUpdatedAt(): DateTime;
+    public function getUpdatedAt(): \DateTimeImmutable;
 
     /**
-     * @return DateTime
+     * @return \DateTimeImmutable|null
      */
-    public function getCreatedAt(): DateTime;
-
-    /**
-     * @return void
-     */
-    public function timestampablePrePersist();
+    public function getCreatedAt(): \DateTimeImmutable;
 
     /**
      * @return void
      */
-    public function timestampablePreUpdate();
+    public function PrePersist();
+
+    /**
+     * @return void
+     */
+    public function PreUpdate();
 }

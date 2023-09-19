@@ -1,3 +1,7 @@
 framework:
     mailer:
         dsn: '%env(MAILER_DSN)%'
+        envelope:
+            sender: 'no-reply@postapp.com'       
+        headers:
+            From: 'Blog Post App <info@postapp.com>'

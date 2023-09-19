@@ -8,3 +8,8 @@ app_home:
     path: /
     controller: App\Controller\HomeController::index
     methods:    [GET]    
+
+user_confirm:
+    path: /user/confirm/{confirmationToken}
+    controller: App\Controller\UserController::confirm
+    methods:    [GET]

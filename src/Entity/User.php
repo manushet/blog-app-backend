@@ -16,37 +16,39 @@ use Doctrine\Common\Collections\Collection;
 use Symfony\Bridge\Doctrine\Types\UuidType;
 use Doctrine\Common\Collections\ArrayCollection;
 use Symfony\Component\Serializer\Annotation\Groups;
+use Symfony\Component\Serializer\Annotation\MaxDepth;
 use Symfony\Component\Validator\Constraints as Assert;
 use Symfony\Component\Security\Core\User\UserInterface;
+use Symfony\Component\Serializer\Annotation\SerializedName;
 use Symfony\Bridge\Doctrine\Validator\Constraints\UniqueEntity;
 use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
 
 #[ApiResource(   
-    normalizationContext: ['groups' => ['read']],//'enable_max_depth' => false,
-    denormalizationContext: ['groups' => ['write', 'edit']],
+    normalizationContext: ['enable_max_depth' => true, 'groups' => ['user:read']],
+    denormalizationContext: ['groups' => ['user:write', 'user:edit']],
     shortName: 'users',
     description: 'List of active users',     
     #types: ['https://schema.org/Offer']
     #paginationItemsPerPage: 25      
     operations: [
         new Get(
-            normalizationContext: ['groups' => ['read']],
-            security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: 'Only admins have access to the request'
+            normalizationContext: ['enable_max_depth' => true, 'groups' => ['user:read']],
+            security: "is_granted('ROLE_MODERATOR') or object == user",
+            securityMessage: 'You have no access to the action'
         ),
         new Patch(
-            denormalizationContext: ['groups' => ['edit']],
+            denormalizationContext: ['groups' => ['user:edit']],
             security: "is_granted('ROLE_ADMIN') or object == user",
-            securityMessage: 'Only admins can edit user accounts'
+            securityMessage: 'You have no access to the action'
         ),
         new Delete(
             security: "is_granted('ROLE_ADMIN')",
-            securityMessage: 'Only admins can delete user accounts'
+            securityMessage: 'You have no access to the action'
         ),
         new GetCollection(
-            normalizationContext: ['groups' => ['read']],
-            security: "is_granted('ROLE_ADMIN')",
-            securityMessage: 'Only admins have access to the request',
+            normalizationContext: ['enable_max_depth' => true, 'groups' => ['user:read']],
+            security: "is_granted('ROLE_MODERATOR')",
+            securityMessage: 'You have no access to the action',
             /*
             uriTemplate: '/grimoire/{id}', 
             requirements: ['id' => '\d+'], 
@@ -59,21 +61,27 @@ use Symfony\Component\Security\Core\User\PasswordAuthenticatedUserInterface;
             */            
         ),
         new Post(
-            denormalizationContext: ['groups' => ['write']],
+            denormalizationContext: ['groups' => ['user:write']],
         ),
     ],
 )]
 #[ORM\Entity(repositoryClass: UserRepository::class)]
-#[UniqueEntity(fields: ['username', 'email'], message: 'This value is already used')]   
+#[UniqueEntity(fields: ['username', 'email'], message: 'This value is already used')]
+#[ORM\HasLifecycleCallbacks]
 class User implements UserInterface, PasswordAuthenticatedUserInterface
 {
+    public const ROLE_SUPERADMIN = "ROLE_SUPERADMIN";
     public const ROLE_ADMIN = "ROLE_ADMIN";
     public const ROLE_USER = "ROLE_USER";
-    
+    public const ROLE_MODERATOR = "ROLE_MODERATOR";
+    public const ROLE_AUTHOR = "ROLE_AUTHOR";
+    public const ROLE_EDITOR = "ROLE_EDITOR";
+    public const ROLE_DEFAULT = self::ROLE_USER;
+
     #[ORM\Id]
     #[ORM\GeneratedValue]
     #[ORM\Column]
-    #[Groups(['read'])]
+    #[Groups(['user:read', 'comment:read', 'post:read'])]
     #[ApiProperty(identifier: true)]
     private ?int $id = null;
 
@@ -83,49 +91,59 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
      * @var string|null
      */
     #[ORM\Column(type: UuidType::NAME, unique: true)]
-    #[Groups(['read', 'write'])]
+    #[Groups(['user:read', 'comment:read', 'post:read'])]
     private ?Uuid $uuid = null;    
 
     #[ORM\Column(length: 180, unique: true)]
-    #[Groups(['read', 'write'])]
-    #[Assert\NotBlank]
+    #[Groups(['user:read', 'user:write'])]
+    #[Assert\NotBlank(groups: ['admin:write'])]
     #[Assert\Length(min: 3, max: 180)]
     private ?string $username = null;
 
     #[ORM\Column]
-    #[Groups(['read', 'write', 'edit'])]
-    private array $roles = [self::ROLE_USER];
+    #[Groups(['admin:read', 'admin:write'])]
+    private array $roles = [self::ROLE_DEFAULT];
 
     /**
      * @var string The hashed password
      */
     #[ORM\Column]
-    #[Assert\NotBlank]
     #[Assert\Length(max: 255)]
     private ?string $password = null;
 
-    #[Groups(['write', 'edit'])]
+    #[Groups(['user:write', 'user:edit'])]
+    #[SerializedName('password')]
     private ?string $plainPassword = null;
 
     #[ORM\Column(length: 255, nullable: true)]
-    #[Groups(['read', 'write', 'edit'])]
+    #[Groups(['user:read', 'user:write', 'user:edit'])]
     #[Assert\Length(min: 3, max: 255)]
     private ?string $name = null;
 
     #[ORM\Column(length: 80)]
-    #[Groups(['read', 'write', 'edit'])]
+    #[Groups(['user:write', 'user:edit', 'admin:read', 'admin:write', 'user:extended:read'])]
     #[Assert\NotBlank]
     #[Assert\Email]
     #[Assert\Length(min: 5, max: 80)]
     private ?string $email = null;
 
     #[ORM\OneToMany(mappedBy: 'author', targetEntity: BlogPost::class, orphanRemoval: true)]
-    #[Groups(['read'])]
+    #[Groups(['user:read'])]
+    #[MaxDepth(1)]
+    #[ApiProperty(readableLink: false, writableLink: false)]  
     private Collection $posts;
 
+    #[Groups(['user:read'])]  
     #[ORM\OneToMany(mappedBy: 'author', targetEntity: Comment::class, orphanRemoval: true)]
-    #[Groups(['read'])]
+    #[MaxDepth(1)]
+    #[ApiProperty(readableLink: false, writableLink: false)]    
     private Collection $comments;
+
+    #[ORM\Column]
+    private ?bool $isEnabled = false;
+
+    #[ORM\Column(length: 255, nullable: true)]
+    private ?string $confirmationToken = null;
 
     public function __construct()
     {
@@ -256,6 +274,30 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
         return $this;
     }
 
+    public function getIsEnabled(): ?bool
+    {
+        return $this->isEnabled;
+    }
+
+    public function setIsEnabled(bool $isEnabled): static
+    {
+        $this->isEnabled = $isEnabled;
+
+        return $this;
+    }   
+    
+    public function getConfirmationToken(): ?string
+    {
+        return $this->confirmationToken;
+    }
+
+    public function setConfirmationToken(?string $confirmationToken): static
+    {
+        $this->confirmationToken = $confirmationToken;
+
+        return $this;
+    }    
+
     /**
      * @return Collection<int, BlogPost>
      */
@@ -326,4 +368,5 @@ class User implements UserInterface, PasswordAuthenticatedUserInterface
     //         $payload['uuid']
     //     );
     // }
+
 }

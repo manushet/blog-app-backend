@@ -21,6 +21,8 @@ RUN apt-get update && apt-get install -y --no-install-recommends \
     bash-completion \
     nano \
     htop \
+    postfix \
+    mailutils \
     && rm -r /var/lib/apt/lists/*
 
 # Install composer
